@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "pubkit 0.2.0 is released as v0.2.0 from commit c8858d3ed4a258757b8f053fcfe53d934dda75b5.",
+      "content": "pubkit 0.2.1 is released as v0.2.1 from commit b82da2e9077ef53ec75c8ab184cb96f4917f5824.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "pubkit",
-            "0.2.0",
+            "0.2.1",
             "pubkit --version",
-            "pubkit 0.2.0",
-            "v0.2.0",
-            "c8858d3ed4a258757b8f053fcfe53d934dda75b5"
+            "pubkit 0.2.1",
+            "v0.2.1",
+            "b82da2e9077ef53ec75c8ab184cb96f4917f5824"
           ]
         ]
       },
-      "scope": "the published release v0.2.0 of pubkit",
+      "scope": "the published release v0.2.1 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "c8858d3ed4a258757b8f053fcfe53d934dda75b5"
+          "revision": "b82da2e9077ef53ec75c8ab184cb96f4917f5824"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "pubkit 0.2.0 was released on 2026-10-04 from commit c8858d3ed4a258757b8f053fcfe53d934dda75b5 with these changes.",
+      "content": "pubkit 0.2.1 was released on 2026-10-04 from commit b82da2e9077ef53ec75c8ab184cb96f4917f5824 with these changes.",
       "data": {
         "columns": [
           {
@@ -57,19 +57,19 @@
         ],
         "rows": [
           [
-            "added",
-            "rust-ci.yml takes gates and functional (the make targets those jobs run), test-args (for cargo test on every platform), and runs cargo test directly rather than through make on macOS and Windows."
+            "fixed",
+            "rust-ci.yml could not be called: two input descriptions held an unquoted comma, which split each input in two, so GitHub rejected the workflow file."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.2.0 of pubkit",
+      "scope": "the published release v0.2.1 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "c8858d3ed4a258757b8f053fcfe53d934dda75b5"
+          "revision": "b82da2e9077ef53ec75c8ab184cb96f4917f5824"
         }
       ]
     }
