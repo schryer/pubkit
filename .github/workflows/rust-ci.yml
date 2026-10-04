@@ -17,9 +17,9 @@ on:
       apt-packages: { type: string, default: '', description: Extra Ubuntu packages for the functional job. }
       pub-version: { type: string, default: '', description: A publet tag whose pub the functional suite drives; empty installs none. }
       os-matrix: { type: string, default: '["ubuntu-latest", "macos-latest", "windows-latest"]' }
-      gates: { type: string, default: fmt-check lint doc, description: Make targets the gates job runs, in order. }
+      gates: { type: string, default: fmt-check lint doc, description: "Make targets the gates job runs, in order." }
       test-args: { type: string, default: '', description: Arguments to cargo test on every platform. }
-      functional: { type: string, default: functional, description: Make targets the functional job runs after sync-check, in order. }
+      functional: { type: string, default: functional, description: "Make targets the functional job runs after sync-check, in order." }
 
 env:
   CARGO_TERM_COLOR: always
