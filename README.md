@@ -59,7 +59,7 @@ jobs:
     permissions: { contents: write }
 ```
 
-- **`rust-ci.yml`:** fmt, clippy and docs gates; `make test` on Linux, macOS and Windows; then the hash-locked venv, `make sync-check` and `make functional`, optionally with a released `pub`.
+- **`rust-ci.yml`:** gates (`fmt-check lint doc` by default; `gates` names other make targets); `cargo test` on Linux, macOS and Windows (`test-args` adds arguments); then the hash-locked venv, `make sync-check`, and the `functional` targets (`functional` by default), optionally with extra apt packages and a released `pub`.
 - **`python-ci.yml`:** takes its commands as inputs (`setup`, `test`, `browser-test`), so a repository with its own entry point keeps it. A non-empty `browser-test` adds a job that installs Playwright's Chromium.
 
 ## Developing
