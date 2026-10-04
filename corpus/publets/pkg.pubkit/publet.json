@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "pubkit 0.2.1 is released as v0.2.1 from commit b82da2e9077ef53ec75c8ab184cb96f4917f5824.",
+      "content": "pubkit 0.3.0 is released as v0.3.0 from commit f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "pubkit",
-            "0.2.1",
+            "0.3.0",
             "pubkit --version",
-            "pubkit 0.2.1",
-            "v0.2.1",
-            "b82da2e9077ef53ec75c8ab184cb96f4917f5824"
+            "pubkit 0.3.0",
+            "v0.3.0",
+            "f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd"
           ]
         ]
       },
-      "scope": "the published release v0.2.1 of pubkit",
+      "scope": "the published release v0.3.0 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "b82da2e9077ef53ec75c8ab184cb96f4917f5824"
+          "revision": "f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "pubkit 0.2.1 was released on 2026-10-04 from commit b82da2e9077ef53ec75c8ab184cb96f4917f5824 with these changes.",
+      "content": "pubkit 0.3.0 was released on 2026-10-04 from commit f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd with these changes.",
       "data": {
         "columns": [
           {
@@ -57,19 +57,19 @@
         ],
         "rows": [
           [
-            "fixed",
-            "rust-ci.yml could not be called: two input descriptions held an unquoted comma, which split each input in two, so GitHub rejected the workflow file."
+            "added",
+            "rust-ci.yml and python-ci.yml end in a 'passed' job that always runs and succeeds only if every other job did: the single check a branch ruleset requires, since a skipped job counts as passing a required check."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.2.1 of pubkit",
+      "scope": "the published release v0.3.0 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "b82da2e9077ef53ec75c8ab184cb96f4917f5824"
+          "revision": "f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd"
         }
       ]
     }
