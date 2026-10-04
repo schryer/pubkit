@@ -4,8 +4,10 @@
 #     uses: schryer/pubkit/.github/workflows/rust-ci.yml@vX.Y.Z
 #     with: { pub-version: v0.1.1 }
 #
-# The steps are pubkit.mk's targets, so the repository's Makefile can
-# override any of them.
+# The gates and the functional job run make targets -- pubkit.mk's by
+# default, and a repository adds its own (guards, conformance) by naming
+# them. The cross-platform job runs cargo directly: macOS ships make 3.81,
+# and Windows has no /bin/bash.
 name: rust-ci
 
 on:
@@ -15,6 +17,9 @@ on:
       apt-packages: { type: string, default: '', description: Extra Ubuntu packages for the functional job. }
       pub-version: { type: string, default: '', description: A publet tag whose pub the functional suite drives; empty installs none. }
       os-matrix: { type: string, default: '["ubuntu-latest", "macos-latest", "windows-latest"]' }
+      gates: { type: string, default: fmt-check lint doc, description: Make targets the gates job runs, in order. }
+      test-args: { type: string, default: '', description: Arguments to cargo test on every platform. }
+      functional: { type: string, default: functional, description: Make targets the functional job runs after sync-check, in order. }
 
 env:
   CARGO_TERM_COLOR: always
@@ -24,9 +29,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: make fmt-check
-      - run: make lint
-      - run: make doc
+      - run: cargo --version && rustc --version
+      - run: |
+          for target in $GATES; do
+            echo "::group::make $target"; make "$target"; echo "::endgroup::"
+          done
+        env: { GATES: '${{ inputs.gates }}' }
 
   test:
     needs: gates
@@ -37,7 +45,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
-      - run: make test
+      - run: cargo test ${{ inputs.test-args }}
 
   functional:
     needs: gates
@@ -61,4 +69,8 @@ jobs:
         env: { PUB: '${{ inputs.pub-version }}' }
       - run: make venv
       - run: make sync-check
-      - run: make functional
+      - run: |
+          for target in $FUNCTIONAL; do
+            echo "::group::make $target"; make "$target"; echo "::endgroup::"
+          done
+        env: { FUNCTIONAL: '${{ inputs.functional }}' }
