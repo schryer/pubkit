@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  # pubkit is its own first consumer: its suite runs through the workflow it
+  # provides, from this checkout, so a change to it is tested before a
+  # release carries it to anyone else. It installs itself from source, not
+  # from a released wheel, so there are no managed files to check.
+  ci:
+    uses: ./.github/workflows/python-ci.yml
+    with: { sync-check: false }
+
+  release:
+    needs: ci
+    uses: schryer/pubrel/.github/workflows/release.yml@v0.1.0
+    with: { pub-version: v0.1.1, pubrel-version: v0.1.0 }
+    permissions:
+      contents: write
+
+  # Consumers lock the wheel by URL and sha256, so each release carries it.
+  # Built once, when the release appears, and never replaced.
+  wheel:
+    needs: release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.14' }
+      - run: |
+          version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')
+          wheel="pubkit-$version-py3-none-any.whl"
+          gh release view "v$version" >/dev/null 2>&1 || { echo "v$version is not released"; exit 0; }
+          gh release view "v$version" --json assets --jq '.assets[].name' | grep -qx "$wheel" && { echo "$wheel already attached"; exit 0; }
+          python -m pip wheel --no-deps . -w dist
+          gh release upload "v$version" "dist/$wheel"
+        env:
+          GH_TOKEN: ${{ github.token }}

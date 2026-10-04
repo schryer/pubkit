@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pubkit"
+version = "0.0.1"
+description = "The testing setup every package shares: a pytest-bdd plugin, managed files, and reusable CI."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "David Schryer", email = "schryer@gmail.com" }]
+dependencies = ["pytest>=8", "pytest-bdd>=8"]
+
+[project.urls]
+Repository = "https://github.com/schryer/pubkit"
+
+[project.entry-points.pytest11]
+pubkit = "pubkit.plugin"
+
+[project.scripts]
+pubkit = "pubkit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pubkit = ["templates/**/*", "templates/**/.github/workflows/*"]

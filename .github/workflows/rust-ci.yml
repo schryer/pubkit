@@ -1,0 +1,64 @@
+# Reusable CI for a Rust package whose behaviour a Gherkin suite tests:
+#
+#   ci:
+#     uses: schryer/pubkit/.github/workflows/rust-ci.yml@vX.Y.Z
+#     with: { pub-version: v0.1.1 }
+#
+# The steps are pubkit.mk's targets, so the repository's Makefile can
+# override any of them.
+name: rust-ci
+
+on:
+  workflow_call:
+    inputs:
+      python-version: { type: string, default: '3.14' }
+      apt-packages: { type: string, default: '', description: Extra Ubuntu packages for the functional job. }
+      pub-version: { type: string, default: '', description: A publet tag whose pub the functional suite drives; empty installs none. }
+      os-matrix: { type: string, default: '["ubuntu-latest", "macos-latest", "windows-latest"]' }
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: make fmt-check
+      - run: make lint
+      - run: make doc
+
+  test:
+    needs: gates
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.os-matrix) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - run: make test
+
+  functional:
+    needs: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with: { python-version: '${{ inputs.python-version }}' }
+      - if: inputs.apt-packages != ''
+        run: sudo apt-get update && sudo apt-get install -y $APT
+        env: { APT: '${{ inputs.apt-packages }}' }
+      - if: inputs.pub-version != ''
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/pub
+          key: pub-${{ inputs.pub-version }}
+      - if: inputs.pub-version != ''
+        run: |
+          command -v pub >/dev/null && pub --version | grep -q "^pub ${PUB#v}$" \
+            || cargo install --locked --git https://github.com/schryer/publet --tag "$PUB" publet-cli
+        env: { PUB: '${{ inputs.pub-version }}' }
+      - run: make venv
+      - run: make sync-check
+      - run: make functional

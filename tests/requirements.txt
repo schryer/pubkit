@@ -1,0 +1,5 @@
+# pubkit's own suite: the same pins it manages for everyone else, without
+# itself -- `make venv` installs this checkout, editable, on top.
+pytest==9.0.2
+pytest-bdd==8.1.0
+pytest-xdist==3.8.0

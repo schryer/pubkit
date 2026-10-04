@@ -1,0 +1,49 @@
+# Reusable CI for a Python package's functional suite:
+#
+#   ci:
+#     uses: schryer/pubkit/.github/workflows/python-ci.yml@vX.Y.Z
+#     with: { browser-test: ./dev test --browser }
+#
+# The commands are inputs, so a repository with its own entry point (a
+# ./dev script, tox) keeps it; the defaults are pubkit.mk's targets.
+name: python-ci
+
+on:
+  workflow_call:
+    inputs:
+      python-version: { type: string, default: '3.14' }
+      apt-packages: { type: string, default: '', description: Extra Ubuntu packages to install first. }
+      setup: { type: string, default: make venv, description: Creates .venv from the hash-locked requirements. }
+      test: { type: string, default: make functional, description: Runs the default scenarios. }
+      browser-test: { type: string, default: '', description: Runs the browser scenarios too; empty skips the browser job. }
+      browser-setup: { type: string, default: .venv/bin/python -m playwright install --with-deps chromium }
+      sync-check: { type: boolean, default: true, description: Fail if pubkit's managed files drifted. }
+
+jobs:
+  functional:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with: { python-version: '${{ inputs.python-version }}' }
+      - if: inputs.apt-packages != ''
+        run: sudo apt-get update && sudo apt-get install -y $APT
+        env: { APT: '${{ inputs.apt-packages }}' }
+      - run: ${{ inputs.setup }}
+      - if: inputs.sync-check
+        run: .venv/bin/pubkit sync --check
+      - run: ${{ inputs.test }}
+
+  browser:
+    if: inputs.browser-test != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with: { python-version: '${{ inputs.python-version }}' }
+      - if: inputs.apt-packages != ''
+        run: sudo apt-get update && sudo apt-get install -y $APT
+        env: { APT: '${{ inputs.apt-packages }}' }
+      - run: ${{ inputs.setup }}
+      - run: ${{ inputs.browser-setup }}
+      - run: ${{ inputs.browser-test }}

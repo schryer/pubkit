@@ -1,0 +1,195 @@
+"""`pubkit`: keep a repository's shared testing files in step.
+
+    pubkit init --kind=rust|python [--bin=NAME]
+    pubkit sync [--check]
+    pubkit lock
+
+Files are either *managed* -- owned by pubkit, rewritten by `sync`, and
+compared by `sync --check`, so they cannot drift -- or *seeded*: written once
+by `init` and the repository's own from then on. Extensions go in seeded
+files (the Makefile includes `pubkit.mk`; requirements.txt includes
+requirements-pubkit.txt), so nothing managed is ever edited by hand.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import subprocess
+import sys
+import tempfile
+import urllib.request
+from importlib import resources
+from pathlib import Path
+
+from . import __version__
+from .plugin import bin_var
+
+KINDS = ("rust", "python")
+MANAGED = {
+    "common": ["tests/requirements-pubkit.txt"],
+    "rust": ["rust-toolchain.toml", "pubkit.mk"],
+    "python": [],
+}
+CONFIG = "pubkit.json"
+LOCK = Path("tests/requirements.lock")
+REQUIREMENTS = Path("tests/requirements.txt")
+
+
+def templates(kind: str) -> dict[str, str]:
+    """Every template for `kind`, by repository path; the kind's own win."""
+    out: dict[str, str] = {}
+    for layer in ("common", kind):
+        root = resources.files("pubkit") / "templates" / layer
+        stack = [(root, "")]
+        while stack:
+            node, prefix = stack.pop()
+            for child in node.iterdir():
+                path = f"{prefix}{child.name}"
+                if child.is_dir():
+                    stack.append((child, path + "/"))
+                else:
+                    out[path] = child.read_text(encoding="utf-8")
+    return out
+
+
+def render(text: str, values: dict[str, str]) -> str:
+    for key, value in values.items():
+        text = text.replace("{" + key + "}", value)
+    return text
+
+
+def managed(kind: str) -> list[str]:
+    return MANAGED["common"] + MANAGED[kind]
+
+
+def read_config(root: Path) -> dict[str, str]:
+    path = root / CONFIG
+    if not path.exists():
+        sys.exit(f"pubkit: no {CONFIG} here; run `pubkit init --kind=rust|python` first")
+    config = json.loads(path.read_text(encoding="utf-8"))
+    if config.get("kind") not in KINDS:
+        sys.exit(f"pubkit: {CONFIG} must give a kind: one of {', '.join(KINDS)}")
+    return config
+
+
+def values(config: dict[str, str]) -> dict[str, str]:
+    return {"version": __version__, "bin_var": bin_var(config.get("bin", "app"))}
+
+
+def init(root: Path, kind: str, binary: str | None) -> int:
+    config = {"kind": kind}
+    if binary:
+        config["bin"] = binary
+    (root / CONFIG).write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    owned = set(managed(kind))
+    for path, text in sorted(templates(kind).items()):
+        target = root / path
+        if target.exists() and path not in owned:
+            print(f"kept     {path} (already present)")
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(render(text, values(config)), encoding="utf-8")
+        print(f"{'managed' if path in owned else 'seeded '}  {path}")
+    print("next: add your requirements to tests/requirements.txt, then `pubkit lock`")
+    return 0
+
+
+def sync(root: Path, check: bool) -> int:
+    config = read_config(root)
+    kind = config["kind"]
+    every = templates(kind)
+    stale = []
+    for path in managed(kind):
+        want = render(every[path], values(config))
+        target = root / path
+        have = target.read_text(encoding="utf-8") if target.exists() else None
+        if have == want:
+            continue
+        stale.append(path)
+        if not check:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(want, encoding="utf-8")
+            print(f"updated  {path}")
+    lock = root / LOCK
+    wheel = f"/download/v{__version__}/pubkit-{__version__}-py3-none-any.whl"
+    lock_stale = lock.exists() and wheel not in lock.read_text(encoding="utf-8")
+    if check:
+        for path in stale:
+            print(f"pubkit: {path} differs from pubkit {__version__}'s; run `pubkit sync`",
+                  file=sys.stderr)
+        if lock_stale:
+            print(f"pubkit: {LOCK} does not pin pubkit {__version__}; run `pubkit lock`",
+                  file=sys.stderr)
+        if stale or lock_stale:
+            return 1
+        print(f"in step with pubkit {__version__}")
+        return 0
+    if not stale:
+        print(f"already in step with pubkit {__version__}")
+    if lock_stale:
+        print(f"now run `pubkit lock`: {LOCK} pins another pubkit")
+    return 0
+
+
+def sha256_of(url: str) -> str:
+    digest = hashlib.sha256()
+    with urllib.request.urlopen(url) as response:  # noqa: S310 - a URL the requirements name
+        for chunk in iter(lambda: response.read(1 << 16), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def lock(root: Path) -> int:
+    """Resolve requirements.txt and pin every package, with its sha256.
+
+    pip's own resolver, through `--dry-run --report`, so locking needs
+    nothing beyond pip.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        report = Path(tmp) / "report.json"
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--dry-run", "--ignore-installed",
+             "--quiet", "--report", str(report), "-r", str(root / REQUIREMENTS)],
+            check=True, stdout=subprocess.DEVNULL,
+        )
+        items = json.loads(report.read_text(encoding="utf-8"))["install"]
+    out = [f"# Generated by `pubkit lock` from {REQUIREMENTS.name}. Do not edit.",
+           "# Installed with --require-hashes: a changed artifact fails the install.", ""]
+    for item in sorted(items, key=lambda i: i["metadata"]["name"].lower()):
+        name = item["metadata"]["name"]
+        info = item["download_info"]
+        digest = info.get("archive_info", {}).get("hashes", {}).get("sha256")
+        if item.get("is_direct"):
+            digest = digest or sha256_of(info["url"])
+            out.append(f"{name} @ {info['url']} \\\n    --hash=sha256:{digest}")
+        else:
+            version = item["metadata"]["version"]
+            out.append(f"{name}=={version} \\\n    --hash=sha256:{digest}")
+    (root / LOCK).write_text("\n".join(out) + "\n", encoding="utf-8")
+    print(f"locked {len(items)} packages in {LOCK}")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="pubkit", description=__doc__.split("\n")[0])
+    parser.add_argument("--version", action="version", version=f"pubkit {__version__}")
+    commands = parser.add_subparsers(dest="command", required=True)
+    p = commands.add_parser("init", help="write the shared files into this repository")
+    p.add_argument("--kind", choices=KINDS, required=True)
+    p.add_argument("--bin", help="the program under test, for <NAME>_BIN_DIR")
+    p = commands.add_parser("sync", help="rewrite, or with --check verify, the managed files")
+    p.add_argument("--check", action="store_true")
+    commands.add_parser("lock", help="pin tests/requirements.txt with hashes")
+    args = parser.parse_args(argv)
+    root = Path.cwd()
+    if args.command == "init":
+        return init(root, args.kind, args.bin)
+    if args.command == "sync":
+        return sync(root, args.check)
+    return lock(root)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
