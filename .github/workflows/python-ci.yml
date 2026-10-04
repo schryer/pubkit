@@ -47,3 +47,22 @@ jobs:
       - run: ${{ inputs.setup }}
       - run: ${{ inputs.browser-setup }}
       - run: ${{ inputs.browser-test }}
+
+  # The one check a ruleset requires. A skipped job counts as passing a
+  # required check, so this job always runs and passes only if every job it
+  # needs succeeded -- the browser job may be skipped only when no
+  # browser-test was asked for.
+  passed:
+    if: always()
+    needs: [functional, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "$RESULTS"
+          echo "$RESULTS" | jq -e --arg browser "$BROWSER" '
+            all(to_entries[];
+                .value.result == "success"
+                or (.key == "browser" and $browser == "" and .value.result == "skipped"))' > /dev/null
+        env:
+          RESULTS: '${{ toJSON(needs) }}'
+          BROWSER: '${{ inputs.browser-test }}'

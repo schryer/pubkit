@@ -74,3 +74,17 @@ jobs:
             echo "::group::make $target"; make "$target"; echo "::endgroup::"
           done
         env: { FUNCTIONAL: '${{ inputs.functional }}' }
+
+  # The one check a ruleset requires. A skipped job counts as passing a
+  # required check, so requiring the jobs above directly would let a PR
+  # merge when gates failed and the rest were skipped; this job always runs
+  # and passes only if every job it needs succeeded.
+  passed:
+    if: always()
+    needs: [gates, test, functional]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "$RESULTS"
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null
+        env: { RESULTS: '${{ toJSON(needs) }}' }

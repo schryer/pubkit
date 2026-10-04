@@ -13,3 +13,12 @@ Feature: The reusable workflows parse as GitHub reads them
       | workflow      |
       | rust-ci.yml   |
       | python-ci.yml |
+
+  Scenario Outline: A reusable workflow ends in the one check a ruleset requires
+    When I parse the workflow "<workflow>"
+    Then its "passed" job always runs and needs every other job
+
+    Examples:
+      | workflow      |
+      | rust-ci.yml   |
+      | python-ci.yml |
