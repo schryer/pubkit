@@ -3,8 +3,20 @@
   "package": "pkg.pubkit",
   "tag": "PKG-PUBKIT-10-2026",
   "corpus": "corpus",
-  "manifest": { "kind": "pyproject", "path": "pyproject.toml" },
-  "code": ["src/", "pyproject.toml", ".github/workflows/python-ci.yml", ".github/workflows/rust-ci.yml"],
-  "command": { "name": "pubkit", "check": "pubkit --version" },
-  "install": "pubkit init --kind=rust|python, or pubkit sync, then pubkit lock: the lock pins the {tag} wheel by its sha256"
+  "manifest": {
+    "kind": "pyproject",
+    "path": "pyproject.toml"
+  },
+  "code": [
+    "src/",
+    "pyproject.toml",
+    ".github/workflows/python-ci.yml",
+    ".github/workflows/rust-ci.yml"
+  ],
+  "command": {
+    "name": "pubkit",
+    "check": "pubkit --version"
+  },
+  "install": "pubkit init --kind=rust|python, or pubkit sync, then pubkit lock: the lock pins the {tag} wheel by its sha256",
+  "key": "pub:sha2-256:ks7g2ycpdnhjdtsn3sfoiqoh2tazwtiwr2emxut3ugourttnnbka"
 }
