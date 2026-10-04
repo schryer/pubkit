@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "pubkit 0.1.0 is released as v0.1.0 from commit 0af2d3b65aa06e93a58d93a093624c20ada75ade.",
+      "content": "pubkit 0.1.1 is released as v0.1.1 from commit 399ced665ba2423a906c23458427c57efea1d4fa.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "pubkit",
-            "0.1.0",
+            "0.1.1",
             "pubkit --version",
-            "pubkit 0.1.0",
-            "v0.1.0",
-            "0af2d3b65aa06e93a58d93a093624c20ada75ade"
+            "pubkit 0.1.1",
+            "v0.1.1",
+            "399ced665ba2423a906c23458427c57efea1d4fa"
           ]
         ]
       },
-      "scope": "the published release v0.1.0 of pubkit",
+      "scope": "the published release v0.1.1 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "0af2d3b65aa06e93a58d93a093624c20ada75ade"
+          "revision": "399ced665ba2423a906c23458427c57efea1d4fa"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "pubkit 0.1.0 was released on 2026-10-04 from commit 0af2d3b65aa06e93a58d93a093624c20ada75ade with these changes.",
+      "content": "pubkit 0.1.1 was released on 2026-10-04 from commit 399ced665ba2423a906c23458427c57efea1d4fa with these changes.",
       "data": {
         "columns": [
           {
@@ -57,27 +57,19 @@
         ],
         "rows": [
           [
-            "added",
-            "A pytest plugin: the binary fixture (from <NAME>_BIN_DIR), the run fixture, the per-scenario ctx with cleanups, the common command-line steps, and markers from feature tags."
-          ],
-          [
-            "added",
-            "pubkit init, sync [--check] and lock: managed and seeded files, kept in step with the pinned version, and hash-locked requirements."
-          ],
-          [
-            "added",
-            "Reusable python-ci.yml and rust-ci.yml workflows."
+            "fixed",
+            "pubkit lock pinned only the hash of the file this machine resolved, so a package with per-platform wheels (greenlet, playwright) could not be installed from the lock on another platform; it now pins every file the index publishes for each version."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.1.0 of pubkit",
+      "scope": "the published release v0.1.1 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "0af2d3b65aa06e93a58d93a093624c20ada75ade"
+          "revision": "399ced665ba2423a906c23458427c57efea1d4fa"
         }
       ]
     }
