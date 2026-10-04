@@ -43,3 +43,11 @@ def inputs_declared(workflow):
     declared = set(triggers(workflow)["workflow_call"]["inputs"])
     used = set(re.findall(r"inputs\.([A-Za-z0-9_-]+)", workflow["text"]))
     assert used <= declared, f"undeclared inputs used: {used - declared}"
+
+
+@then(parsers.parse('its "{name}" job always runs and needs every other job'))
+def aggregate(workflow, name):
+    jobs = workflow["data"]["jobs"]
+    job = jobs[name]
+    assert job.get("if") == "always()", job.get("if")
+    assert set(job["needs"]) == set(jobs) - {name}, job["needs"]
