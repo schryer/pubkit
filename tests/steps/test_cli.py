@@ -3,7 +3,10 @@ repository, through the plugin's own `run` fixture."""
 
 from __future__ import annotations
 
+import hashlib
+import json
 import shutil
+import zipfile
 import sys
 from pathlib import Path
 
@@ -46,9 +49,37 @@ def file_reads(repo, path, text):
     target.write_text(text + "\n")
 
 
+@pytest.fixture
+def env():
+    return {}
+
+
+@given(parsers.parse('a package "{name}" {version} whose index lists files hashed "{a}" and "{b}"'))
+def indexed(tmp_path, env, name, version, a, b):
+    """A local wheel pip resolves (no network), and an index JSON API, on
+    disk, that lists two more files for the same version."""
+    links = tmp_path / "links"
+    links.mkdir()
+    wheel = links / f"{name}-{version}-py3-none-any.whl"
+    info = f"{name}-{version}.dist-info"
+    with zipfile.ZipFile(wheel, "w") as z:
+        z.writestr(f"{info}/METADATA",
+                   f"Metadata-Version: 2.1\nName: {name}\nVersion: {version}\n")
+        z.writestr(f"{info}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n")
+        z.writestr(f"{info}/RECORD", "")
+    api = tmp_path / "index" / name / version
+    api.mkdir(parents=True)
+    (api / "json").write_text(json.dumps(
+        {"urls": [{"digests": {"sha256": a}}, {"digests": {"sha256": b}}]}))
+    env.update(PIP_NO_INDEX="1", PIP_FIND_LINKS=str(links),
+               PUBKIT_INDEX_JSON=(tmp_path / "index").as_uri())
+    env["resolved"] = hashlib.sha256(wheel.read_bytes()).hexdigest()
+
+
 @when(parsers.re(r'I run pubkit (?P<args>(?:"[^"]*" ?)+)'), target_fixture="result")
-def run_pubkit(repo, run, args):
-    return run(pubkit(), *args.strip().strip('"').split('" "'), cwd=repo)
+def run_pubkit(repo, run, env, args):
+    variables = {k: v for k, v in env.items() if k != "resolved"}
+    return run(pubkit(), *args.strip().strip('"').split('" "'), cwd=repo, env=variables)
 
 
 @then(parsers.parse("the repository has {paths}"))
@@ -66,3 +97,11 @@ def contains(repo, path, text):
 def pins_wheel(repo, path):
     assert f"/download/v{__version__}/pubkit-{__version__}-py3-none-any.whl" in (
         repo / path).read_text()
+
+
+@then(parsers.parse('"{path}" pins "{pin}" with the hashes "{a}", "{b}" and the resolved file\'s'))
+def pins_hashes(repo, env, path, pin, a, b):
+    lock = (repo / path).read_text()
+    assert pin in lock, lock
+    for digest in (a, b, env["resolved"]):
+        assert f"--hash=sha256:{digest}" in lock, lock

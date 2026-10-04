@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -141,11 +142,28 @@ def sha256_of(url: str) -> str:
     return digest.hexdigest()
 
 
+INDEX_JSON = "https://pypi.org/pypi"
+
+
+def published_hashes(name: str, version: str) -> list[str]:
+    """The sha256 of every file the index publishes for name==version.
+
+    A package with compiled wheels has one per platform; pinning only the
+    one this machine resolved would make the lock uninstallable everywhere
+    else. PUBKIT_INDEX_JSON points at another index's JSON API.
+    """
+    base = os.environ.get("PUBKIT_INDEX_JSON", INDEX_JSON).rstrip("/")
+    with urllib.request.urlopen(f"{base}/{name}/{version}/json") as response:  # noqa: S310
+        files = json.load(response)["urls"]
+    return sorted({f["digests"]["sha256"] for f in files})
+
+
 def lock(root: Path) -> int:
-    """Resolve requirements.txt and pin every package, with its sha256.
+    """Resolve requirements.txt and pin every package, with its sha256s.
 
     pip's own resolver, through `--dry-run --report`, so locking needs
-    nothing beyond pip.
+    nothing beyond pip; the index's JSON API then supplies the hash of every
+    file of each pinned version, so the lock installs on any platform.
     """
     with tempfile.TemporaryDirectory() as tmp:
         report = Path(tmp) / "report.json"
@@ -166,7 +184,9 @@ def lock(root: Path) -> int:
             out.append(f"{name} @ {info['url']} \\\n    --hash=sha256:{digest}")
         else:
             version = item["metadata"]["version"]
-            out.append(f"{name}=={version} \\\n    --hash=sha256:{digest}")
+            digests = sorted(set(published_hashes(name, version)) | ({digest} if digest else set()))
+            hashes = " \\\n    ".join(f"--hash=sha256:{d}" for d in digests)
+            out.append(f"{name}=={version} \\\n    {hashes}")
     (root / LOCK).write_text("\n".join(out) + "\n", encoding="utf-8")
     print(f"locked {len(items)} packages in {LOCK}")
     return 0

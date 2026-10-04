@@ -54,3 +54,11 @@ Feature: Keeping a repository's shared files in step
     When I run pubkit "sync" "--check"
     Then it fails
     And stderr mentions "run `pubkit init"
+
+  Scenario: lock pins every file the index publishes, so it installs on any platform
+    Given an empty repository
+    And a package "demo" 1.0 whose index lists files hashed "aaaa" and "bbbb"
+    And the file "tests/requirements.txt" reads "demo==1.0"
+    When I run pubkit "lock"
+    Then it succeeds
+    And "tests/requirements.lock" pins "demo==1.0" with the hashes "aaaa", "bbbb" and the resolved file's
