@@ -1,9 +1,4 @@
 {
-  "changes": [
-    {
-      "category": "fixed",
-      "change": "rust-ci.yml could not be called: two input descriptions held an unquoted comma, which split each input in two, so GitHub rejected the workflow file."
-    }
-  ],
+  "changes": [],
   "comment": "Changes not yet released. One row per change: category changed or removed (a published interface changed: major), added (a feature: minor), or fixed or security (patch). `pubrel add` appends one; `pubrel prepare` moves them into the package publet."
 }
