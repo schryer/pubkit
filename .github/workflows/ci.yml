@@ -15,8 +15,8 @@ jobs:
 
   release:
     needs: ci
-    uses: schryer/pubrel/.github/workflows/release.yml@v0.2.0
-    with: { pubrel-version: v0.2.0 }
+    uses: schryer/pubrel/.github/workflows/release.yml@v0.4.3
+    with: { pubrel-version: v0.4.3 }
     permissions:
       contents: write
 
