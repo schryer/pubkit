@@ -30,8 +30,10 @@ mode named, audit only.
    - `doc-coverage-check`, `supply-chain-check`, `vectors-check`;
    - `cargo test --doc -p <crate>`.
 
-   If a target is missing, report that as a gap, and don't rebuild it by
-   hand. Never re-judge a rule a tool already enforces.
+   Report a missing target as a gap only if the standard's table in
+   section 6 requires it for this kind of crate, and don't rebuild it by
+   hand. Never re-judge a rule a tool already enforces. Skip
+   `cargo test --doc` for a crate with no library target.
 2. **Build the docs as docs.rs will:**
    1. Package with `cargo package --no-verify -p <crate>`.
    2. Unpack it into a temporary directory outside the repository.
@@ -40,13 +42,19 @@ mode named, audit only.
       RUSTDOCFLAGS="--cfg docsrs -Z unstable-options --generate-link-to-definition -D warnings" cargo +nightly doc --no-deps --all-features
       ```
    4. If nightly is not installed, say so and skip this step.
+   5. If packaging fails, for example on a git dependency, report that as
+      a blocker. Then build from a copy of the source tree, and say so.
+   6. Skip this step for a binary-only crate: docs.rs renders nothing for
+      one. Use `cargo clippy -- -W clippy::missing_docs_in_private_items`
+      instead to find undocumented items.
 3. **Read for the [judged] rules.** Read the crate root, the README, every
    public item's docs, the tests' `// covers:` comments, `SECURITY.md`, and
    `Cargo.toml`. Check each judged rule against what is actually there.
    For a crate with only a binary target, section 9 says which rules change.
 4. **Verify claims; don't trust them.** For each row of "Related crates",
    check the stated version against `cargo info <crate>` and the stated
-   behaviour where that can be done cheaply. If you can't verify a claim,
+   behaviour where that can be done cheaply. A tool that is not a crate is
+   checked from its own documentation or source, and the row says which. If you can't verify a claim,
    say "unverified". Never call it true. Spot-check a few `// covers:`
    claims by reading the test.
 
@@ -70,7 +78,9 @@ Do not pad the report: if a crate meets a section, say so in one line.
 When asked to write or fix:
 
 - **Edit documentation only.** That means doc comments (`///`, `//!`, `/*!`),
-  the README, `SECURITY.md`, and the `_documentation` module's wiring. You
+  the README, `SECURITY.md`, and the `_documentation` module's wiring. For
+  a command-line tool, it also means the text of its usage and help
+  strings, but not the code that prints them or decides when. You
   may add a `// covers:` comment to a test, but only after reading the test
   and confirming it exercises the item.
 - **Never change code, signatures, tests' logic, or `Cargo.toml`
@@ -80,6 +90,10 @@ When asked to write or fix:
 - **Never edit generated files** (`TESTING.md`, `SUPPLY-CHAIN.md`,
   `CHANGELOG.md`). Regenerate them with their make targets (`doc-coverage`,
   `supply-chain`) once their sources change.
+- **A policy is a decision, not a fact.** Where a document needs one that
+  the repository does not already state, write it in the standard's terms
+  and list it in the report under "for a person to confirm". Examples are
+  supported versions, the MSRV policy, and how fixes are released.
 - **Write only what is true and checked.** Every example must compile and
   pass as a doctest. Every claim about another crate needs a check you ran
   and can name. If you can't verify something, leave it out and report it,

@@ -34,7 +34,8 @@ items. It is never pasted from the README. In order:
    one builds on.
 7. **Crate features:** every feature, or "None", said plainly. [judged]
 8. **Minimum Rust version:** the `rust-version`, and the policy. It may rise
-   in a release that bumps the minor version, never in a patch. [judged]
+   in a release that bumps the second number (`y` in `x.y.z`, and in
+   `0.y.z`), never in one that bumps only the third. [judged]
 9. **Versioning:** Cargo's convention, and that the public API is checked
    against the last release. [judged]
 
@@ -115,7 +116,10 @@ item that includes the README, so they cannot rot. [checked]
     `rustdoc-args = ["--generate-link-to-definition"]`.
 
   [judged]
-- The licence file ships in the package. [checked: `make publish-check`]
+- `license` names the licence, and the licence file is in the repository
+  and ships in the package. Which licence is the project's choice; the
+  standard asks only that it be stated and shipped. [checked: `make
+  publish-check`]
 - **Docs build as docs.rs builds them.** That means from the packaged
   crate, on nightly, with `--cfg docsrs` and the metadata's flags, with no
   warnings. [judged: run it before each release]
@@ -130,13 +134,24 @@ item that includes the README, so they cannot rot. [checked]
 
 ## 6. Versions, MSRV and the API
 
+The make targets each kind of crate needs:
+
+| Target | Library | Binary-only |
+|---|---|---|
+| `doc`, `lint`, `msrv`, `publish-check`, `supply-chain-check` | yes | yes |
+| `doc-coverage-check` | yes | no |
+| `vectors-check` | when it has test vectors | when it has test vectors |
+| `fuzz-smoke` | when it reads untrusted input | when it reads untrusted input |
+
+
 - Versions follow **Cargo's convention**. From 1.0: breaking is major, an
   addition is minor, a fix is a patch. Below 1.0 everything shifts one
   place: at `0.y.z`, breaking bumps `y` and anything compatible bumps `z`.
   [checked: pubrel]
 - **The MSRV is tested.** CI builds the published crates on their
   `rust-version` (the `msrv` input), and the scheduled run tests the latest
-  stable and beta. Raising the MSRV is a minor-version change. [checked]
+  stable and beta. Raising the MSRV bumps the second number of the version,
+  `y` in `x.y.z` and in `0.y.z`. [checked]
 - **The public API is checked against the last release** by
   cargo-semver-checks, through pubrel (`"semver-checks": true` in
   release.json). An unrecorded break fails, below 1.0 too. [checked]
@@ -183,8 +198,16 @@ the rules above apply with these differences:
   `--help` names every command and flag, and the README agrees with it.
   [judged]
 - **Module docs still matter.** `//!` docs on `main.rs` and each module say
-  what it does and why, for whoever maintains it. The public-item rules of
-  section 2 apply to anything `pub` that another module relies on. [judged]
+  what it does and why, for whoever maintains it. Section 2's rules apply
+  to anything `pub` that another module relies on, with these changes:
+  - `#![deny(missing_docs)]` checks nothing in a binary, because nothing is
+    exported. Find undocumented items with
+    `cargo clippy -- -W clippy::missing_docs_in_private_items`.
+  - Doctests do not run in a binary target, so section 2's example rule
+    does not apply. The README's example commands and the functional
+    scenarios take their place.
+
+  [judged]
 - **Its versioned interface is what users depend on:**
   - commands and flags;
   - exit codes;
@@ -198,6 +221,18 @@ the rules above apply with these differences:
 - **Its behaviour is tested end to end.** That means a functional suite
   (pubkit's Gherkin plugin) that runs the built binary as a user would, in
   addition to unit tests. [judged]
+- **Its usage text is documentation.** The `--help` output, usually a
+  string constant, is held to the same standard as the README. `--help`
+  exits 0 and prints to stdout. [judged]
+- **Metadata:** `documentation` points at the README in the repository.
+  `[package.metadata.docs.rs]` is not needed, since docs.rs renders no
+  pages for a binary. [judged]
+- **`// covers:` comments** may name module-private items by their module
+  path (`api::allowed`). `TESTING.md` and the doc-coverage guard are for
+  libraries, and are not required of a binary. [judged]
+- **Related tools** may include tools that are not Rust crates. Name the
+  version or date checked, and how: their documentation, their source, or
+  a run. [judged]
 - **Every dependency comes from crates.io.** crates.io refuses a package
   with a git or path dependency. A tool built on a sibling crate is
   published after that crate. [checked: `cargo publish --dry-run`]
@@ -221,7 +256,7 @@ the rules above apply with these differences:
 
 These were considered and declined. Do not report their absence as a gap.
 
-- Dual MIT/Unlicense: the licence is Apache-2.0.
+- Dual MIT/Unlicense as a requirement: each project chooses its licence.
 - rustfmt at 79 columns.
 - miri for crates that forbid `unsafe`.
 - `no_std` until someone needs it.
