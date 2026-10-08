@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "pubkit 0.3.0 is released as v0.3.0 from commit f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd.",
+      "content": "pubkit 0.3.1 is released as v0.3.1 from commit f70284219791a2302ed012e9c3e4b2c5dfa20488.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "pubkit",
-            "0.3.0",
+            "0.3.1",
             "pubkit --version",
-            "pubkit 0.3.0",
-            "v0.3.0",
-            "f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd"
+            "pubkit 0.3.1",
+            "v0.3.1",
+            "f70284219791a2302ed012e9c3e4b2c5dfa20488"
           ]
         ]
       },
-      "scope": "the published release v0.3.0 of pubkit",
+      "scope": "the published release v0.3.1 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd"
+          "revision": "f70284219791a2302ed012e9c3e4b2c5dfa20488"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "pubkit 0.3.0 was released on 2026-10-04 from commit f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd with these changes.",
+      "content": "pubkit 0.3.1 was released on 2026-10-08 from commit f70284219791a2302ed012e9c3e4b2c5dfa20488 with these changes.",
       "data": {
         "columns": [
           {
@@ -58,23 +58,23 @@
         "rows": [
           [
             "added",
-            "rust-ci.yml and python-ci.yml end in a 'passed' job that always runs and succeeds only if every other job did: the single check a branch ruleset requires, since a skipped job counts as passing a required check."
+            "rust-ci.yml gains optional jobs: `msrv` (the lowest rust-version stated), `fuzz` (longer on a schedule), `cross-targets` (i686, s390x, aarch64 under qemu), and, on scheduled runs, the tests on the latest stable and beta Rust. `passed` reports them all, accepting a job skipped because it was not asked for."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.3.0 of pubkit",
+      "scope": "the published release v0.3.1 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "f943dc4979ca1ef16ff3ccfa4b7e6d423547c4fd"
+          "revision": "f70284219791a2302ed012e9c3e4b2c5dfa20488"
         }
       ]
     }
   },
-  "created": "2026-10-04T00:00:00Z",
+  "created": "2026-10-08T00:00:00Z",
   "sections": [
     {
       "heading": "Identity",
