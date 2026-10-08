@@ -7,7 +7,7 @@ name = "pubkit"
 version = "0.3.1"
 description = "The testing setup every package shares: a pytest-bdd plugin, managed files, and reusable CI."
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.10"
 authors = [{ name = "David Schryer", email = "schryer@gmail.com" }]
 dependencies = ["pytest>=8", "pytest-bdd>=8"]

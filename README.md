@@ -151,4 +151,4 @@ package publet, `pkg.pubkit`, lives in `corpus/`.
 
 ## Licence
 
-MIT.
+Apache-2.0: see [`LICENSE`](LICENSE).
