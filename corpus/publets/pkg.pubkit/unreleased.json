@@ -1,4 +1,9 @@
 {
-  "changes": [],
-  "comment": "Changes not yet released. One row per change: category changed or removed (a published interface changed: major), added (a feature: minor), or fixed or security (patch). `pubrel add` appends one; `pubrel prepare` moves them into the package publet."
+  "changes": [
+    {
+      "category": "added",
+      "change": "rust-ci.yml gains optional jobs: `msrv` (the lowest rust-version stated), `fuzz` (longer on a schedule), `cross-targets` (i686, s390x, aarch64 under qemu), and, on scheduled runs, the tests on the latest stable and beta Rust. `passed` reports them all, accepting a job skipped because it was not asked for."
+    }
+  ],
+  "comment": "Changes not yet released. One row per change: category changed or removed (a published interface changed: major), added (a feature: minor), or fixed or security (patch). `pubrel add` appends one; `pubrel summary` sets the release's summary; `pubrel prepare` moves them into the package publet."
 }

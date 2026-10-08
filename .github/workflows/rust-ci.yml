@@ -8,6 +8,19 @@
 # default, and a repository adds its own (guards, conformance) by naming
 # them. The cross-platform job runs cargo directly: macOS ships make 3.81,
 # and Windows has no /bin/bash.
+#
+# Optional jobs, each off until asked for:
+#
+# - msrv: true builds on the oldest Rust the packages promise, the lowest
+#   `rust-version` their manifests state, by `make msrv MSRV=<version>`.
+# - fuzz: true runs `make fuzz-smoke FUZZ_SECONDS=<n>` on nightly Rust:
+#   briefly on every change, longer on a schedule.
+# - cross-targets lists targets whose tests run under emulation: i686
+#   (32-bit) and s390x (big-endian) find word-size and byte-order bugs.
+#
+# When the caller's workflow also runs on a `schedule`, those runs add the
+# toolchains job: the tests on the latest stable and beta Rust, which the
+# pinned toolchain cannot show breaking.
 name: rust-ci
 
 on:
@@ -20,6 +33,14 @@ on:
       gates: { type: string, default: fmt-check lint doc, description: "Make targets the gates job runs, in order." }
       test-args: { type: string, default: '', description: Arguments to cargo test on every platform. }
       functional: { type: string, default: functional, description: "Make targets the functional job runs after sync-check, in order." }
+      msrv: { type: boolean, default: false, description: "Build on the lowest rust-version the manifests state, by make msrv MSRV=<version>." }
+      fuzz: { type: boolean, default: false, description: "Run make fuzz-smoke on nightly Rust." }
+      fuzz-seconds: { type: number, default: 60, description: Seconds per fuzz target on a pull request or push. }
+      fuzz-seconds-scheduled: { type: number, default: 900, description: Seconds per fuzz target on a scheduled run. }
+      cargo-fuzz-version: { type: string, default: 0.13.2 }
+      cross-targets: { type: string, default: '[]', description: "JSON list of targets to test under emulation: i686-unknown-linux-gnu, s390x-unknown-linux-gnu, aarch64-unknown-linux-gnu." }
+      cross-test-args: { type: string, default: '', description: "Arguments to cargo test on each cross target, such as -p for the crates that matter." }
+      scheduled-toolchains: { type: string, default: '["stable", "beta"]', description: JSON list of toolchains a scheduled run tests on. }
 
 env:
   CARGO_TERM_COLOR: always
@@ -75,16 +96,113 @@ jobs:
           done
         env: { FUNCTIONAL: '${{ inputs.functional }}' }
 
+  msrv:
+    if: inputs.msrv
+    needs: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # The oldest rust-version any package states: the oldest Rust the
+      # repository promises anything on. Its `make msrv` builds whichever
+      # packages make that promise.
+      - name: Find the oldest promised Rust
+        id: msrv
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[].rust_version // empty' | sort -V | head -1)
+          if [ -z "$version" ]; then
+            echo "::error::msrv is on, but no package states a rust-version"; exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - run: rustup toolchain install "$MSRV" --profile minimal
+        env: { MSRV: '${{ steps.msrv.outputs.version }}' }
+      - run: make msrv MSRV="$MSRV"
+        env: { MSRV: '${{ steps.msrv.outputs.version }}' }
+
+  fuzz:
+    if: inputs.fuzz
+    needs: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install nightly --profile minimal
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-fuzz
+          key: cargo-fuzz-${{ inputs.cargo-fuzz-version }}-${{ runner.os }}
+      - run: |
+          command -v cargo-fuzz >/dev/null && cargo-fuzz --version | grep -q " ${VERSION}$" \
+            || cargo install --locked cargo-fuzz --version "$VERSION"
+        env: { VERSION: '${{ inputs.cargo-fuzz-version }}' }
+      - run: make fuzz-smoke FUZZ_SECONDS="$SECONDS_PER_TARGET"
+        env:
+          SECONDS_PER_TARGET: ${{ github.event_name == 'schedule' && inputs.fuzz-seconds-scheduled || inputs.fuzz-seconds }}
+
+  # Built for the target with its own gcc, run under qemu-user. Doctests
+  # are not cross-compiled on stable Rust, so these run the unit and
+  # integration tests.
+  cross:
+    if: inputs.cross-targets != '[]'
+    needs: gates
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(inputs.cross-targets) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the target's linker and emulator
+        run: |
+          case "$TARGET" in
+            i686-unknown-linux-gnu)
+              sudo apt-get update && sudo apt-get install -y gcc-multilib ;;
+            s390x-unknown-linux-gnu)
+              sudo apt-get update && sudo apt-get install -y gcc-s390x-linux-gnu libc6-dev-s390x-cross qemu-user
+              echo "CARGO_TARGET_S390X_UNKNOWN_LINUX_GNU_LINKER=s390x-linux-gnu-gcc" >> "$GITHUB_ENV"
+              echo "CARGO_TARGET_S390X_UNKNOWN_LINUX_GNU_RUNNER=qemu-s390x -L /usr/s390x-linux-gnu" >> "$GITHUB_ENV" ;;
+            aarch64-unknown-linux-gnu)
+              sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu libc6-dev-arm64-cross qemu-user
+              echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+              echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_RUNNER=qemu-aarch64 -L /usr/aarch64-linux-gnu" >> "$GITHUB_ENV" ;;
+            *) echo "::error::no recipe for $TARGET (i686, s390x and aarch64 linux-gnu are known)"; exit 1 ;;
+          esac
+        env: { TARGET: '${{ matrix.target }}' }
+      - run: rustup target add "$TARGET"
+        env: { TARGET: '${{ matrix.target }}' }
+      - run: cargo test --target "$TARGET" $ARGS
+        env: { TARGET: '${{ matrix.target }}', ARGS: '${{ inputs.cross-test-args }}' }
+
+  # Scheduled runs only: the tests on Rust newer than the pinned toolchain,
+  # so a release that breaks the build is seen the day it ships rather than
+  # when the pin moves. Not run on pull requests, where a new Rust's
+  # breakage is not the change's fault.
+  toolchains:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: gates
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: ${{ fromJSON(inputs.scheduled-toolchains) }}
+    runs-on: ubuntu-latest
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.toolchain }}
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install "$RUSTUP_TOOLCHAIN" --profile minimal
+      - run: cargo --version && cargo test ${{ inputs.test-args }}
+
   # The one check a ruleset requires. A skipped job counts as passing a
   # required check, so requiring the jobs above directly would let a PR
   # merge when gates failed and the rest were skipped; this job always runs
-  # and passes only if every job it needs succeeded.
+  # and passes only if every job it needs succeeded. A job may be skipped
+  # only because it was not asked for: anything skipped because gates
+  # failed fails here through gates itself.
   passed:
     if: always()
-    needs: [gates, test, functional]
+    needs: [gates, test, functional, msrv, fuzz, cross, toolchains]
     runs-on: ubuntu-latest
     steps:
       - run: |
           echo "$RESULTS"
-          echo "$RESULTS" | jq -e 'all(.[]; .result == "success")' > /dev/null
+          echo "$RESULTS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' > /dev/null
         env: { RESULTS: '${{ toJSON(needs) }}' }
