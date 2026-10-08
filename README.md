@@ -1,13 +1,17 @@
 # pubkit
 
-The testing setup every package shares: a pytest-bdd plugin, the files each
-repository must hold kept in step by a command, and reusable CI workflows.
+The testing and quality setup every package shares:
+- a pytest-bdd plugin;
+- the files each repository must hold, kept in step by a command;
+- reusable CI workflows;
+- the Rust crate standard, with a Claude Code agent that audits crates
+  against it.
 
 Every package tests its behaviour the same way: Gherkin feature files, run
 by pytest-bdd, driving the built program as a user would. pubkit is that
 setup, written once.
 
-## The plugin
+## The pytest plugin
 
 Installed, it loads into every pytest session (the `pytest11` entry point):
 
@@ -33,12 +37,75 @@ pubkit sync                         # after bumping pubkit: rewrite them
 Files are **managed**, owned by pubkit and rewritten by `sync`, or
 **seeded**, written once by `init` and the repository's own after that.
 
-- **Managed:** `tests/requirements-pubkit.txt` (the shared pins and the pubkit wheel), and for Rust `pubkit.mk` and `rust-toolchain.toml`.
+- **Managed:** `tests/requirements-pubkit.txt` (the shared pins and the pubkit wheel). For Rust, also `pubkit.mk`, `rust-toolchain.toml`, and the crate standard with its agent (below).
 - **Seeded:** `tests/requirements.txt` (includes the managed one), `tests/pytest.ini`, `.github/workflows/ci.yml`, and for Rust a `Makefile` that includes `pubkit.mk`.
 
 Extensions go in the seeded files, so nothing managed is ever edited by
 hand. `sync --check` also fails when `tests/requirements.lock` pins another
 pubkit.
+
+## The Rust crate standard, and an agent that audits against it
+
+[**The Rust crate standard**](plugins/rust-crate-quality/rust-crate-standard.md)
+is what a crate published from these repositories is held to, whether a
+library or a command-line tool. It covers:
+- crate and item docs in the style of BurntSushi's crates;
+- test vectors and `// covers:` links;
+- fuzzing and packaging;
+- Cargo's version convention, with API checks;
+- the supply-chain record;
+- cross-platform CI;
+- plain writing.
+
+Each rule is marked *checked* (a tool enforces it) or *judged* (it needs
+reading). The standard ends with what was deliberately not adopted.
+
+The **`rust-crate-quality` agent** audits a crate against that standard, and
+writes or fixes its docs to meet it. pubkit's repository is a Claude Code
+plugin marketplace, so the agent installs once for every repository, and
+none of them needs a `.claude/` folder. In Claude Code:
+
+```
+/plugin marketplace add schryer/pubkit
+/plugin install rust-crate-quality@pubkit
+```
+
+Then ask for it by name, in any repository:
+
+- "Use rust-crate-quality to audit publet-core." It returns a report and
+  edits nothing.
+- "Use rust-crate-quality to fix the docs of pubrel." It edits
+  documentation, then re-runs the checks.
+
+Claude Code also offers it unprompted when you ask whether a crate is ready
+to publish.
+
+What it does:
+
+1. Reads the standard. It ships with the agent, so the agent never works
+   from memory.
+2. Runs the checks the repository has (`make doc`, `lint`, `msrv`,
+   `publish-check`, `doc-coverage-check` and the like) and reports what they
+   say. It doesn't judge those rules again.
+3. Builds the docs as docs.rs will: from the packaged crate, on nightly,
+   with no warnings.
+4. Reads the docs and code for the judged rules. It verifies claims, such
+   as each "Related crates" row, rather than trusting them.
+5. Reports each finding with its rule, file and line, from what blocks a
+   release down to what is worth considering.
+
+**What it changes:** documentation only. That means doc comments, the
+README and `SECURITY.md`. Anything that needs a code change, such as
+`#[non_exhaustive]` or a `u64` for a peer-supplied size, comes back as a
+finding for you to decide.
+
+**What it never does:** edit generated files, which it regenerates instead,
+or record the change. Commit its edits as usual, with `pubrel add internal
+"..."`.
+
+`/plugin marketplace update pubkit` picks up a newer standard.
+
+## Locking
 
 `pubkit lock` resolves with pip's own resolver (`pip install --dry-run
 --report`) and needs nothing else. The lock pins the pubkit wheel by URL and

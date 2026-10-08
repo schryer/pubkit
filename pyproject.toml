@@ -25,4 +25,8 @@ pubkit = "pubkit.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-pubkit = ["templates/**/*", "templates/**/.github/workflows/*"]
+# Globs skip dot-directories, so each one templates use is named.
+pubkit = [
+    "templates/**/*",
+    "templates/**/.github/workflows/*",
+]

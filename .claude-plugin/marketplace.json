@@ -1,0 +1,15 @@
+{
+  "name": "pubkit",
+  "description": "Claude Code plugins from pubkit, the shared testing and quality setup for schryer's packages.",
+  "owner": {
+    "name": "David Schryer"
+  },
+  "plugins": [
+    {
+      "name": "rust-crate-quality",
+      "source": "./plugins/rust-crate-quality",
+      "description": "Audit a Rust crate against pubkit's crate standard, and write the docs it needs.",
+      "category": "development"
+    }
+  ]
+}

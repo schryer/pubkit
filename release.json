@@ -11,7 +11,9 @@
     "src/",
     "pyproject.toml",
     ".github/workflows/python-ci.yml",
-    ".github/workflows/rust-ci.yml"
+    ".github/workflows/rust-ci.yml",
+    "plugins/",
+    ".claude-plugin/"
   ],
   "command": {
     "name": "pubkit",
