@@ -15,6 +15,8 @@ from pytest_bdd import given, parsers, scenarios, then, when
 
 from pubkit import __version__
 
+SOURCE = Path(__file__).resolve().parents[2]
+
 scenarios("cli.feature")
 
 
@@ -105,3 +107,30 @@ def pins_hashes(repo, env, path, pin, a, b):
     assert pin in lock, lock
     for digest in (a, b, env["resolved"]):
         assert f"--hash=sha256:{digest}" in lock, lock
+
+
+
+
+@when("pubkit's wheel is built", target_fixture="wheel")
+def built_wheel(tmp_path):
+    # Templates are package data, and a glob that misses one (a
+    # dot-directory, say) passes every test run from source while the
+    # released wheel lacks the file.
+    # Built from a clean copy: setuptools reuses an egg-info's file list
+    # from an earlier build, which can hide a file the globs no longer match.
+    import subprocess
+    copy = tmp_path / "source"
+    shutil.copytree(SOURCE, copy, ignore=shutil.ignore_patterns(
+        ".git", ".venv", "build", "dist", "*.egg-info", "__pycache__"))
+    subprocess.run([sys.executable, "-m", "pip", "wheel", "--quiet", "--no-deps",
+                    str(copy), "-w", str(tmp_path)], check=True)
+    return next(tmp_path.glob("pubkit-*.whl"))
+
+
+@then("it holds every file under src/pubkit/templates")
+def wheel_holds_templates(wheel):
+    names = set(zipfile.ZipFile(wheel).namelist())
+    src = SOURCE / "src"
+    missing = [p.relative_to(src).as_posix() for p in (src / "pubkit" / "templates").rglob("*")
+               if p.is_file() and p.relative_to(src).as_posix() not in names]
+    assert not missing, f"the wheel lacks {missing}"
