@@ -59,7 +59,13 @@ jobs:
     permissions: { contents: write }
 ```
 
-- **`rust-ci.yml`:** gates (`fmt-check lint doc` by default; `gates` names other make targets); `cargo test` on Linux, macOS and Windows (`test-args` adds arguments); then the hash-locked venv, `make sync-check`, and the `functional` targets (`functional` by default), optionally with extra apt packages and a released `pub`.
+- **`rust-ci.yml`:** gates (`fmt-check lint doc` by default; `gates` names other make targets); `cargo test` on Linux, macOS and Windows (`test-args` adds arguments); then the hash-locked venv, `make sync-check`, and the `functional` targets (`functional` by default), optionally with extra apt packages and a released `pub`. Optional jobs, each off by default:
+  - `msrv: true` runs `make msrv MSRV=<the lowest rust-version stated>` on that toolchain;
+  - `fuzz: true` runs `make fuzz-smoke` on nightly (`fuzz-seconds`, and `fuzz-seconds-scheduled` on a schedule);
+  - `cross-targets` (a JSON list: i686, s390x or aarch64 `-unknown-linux-gnu`) runs `cargo test` under qemu, with `cross-test-args`;
+  - when the caller also runs on a `schedule`, those runs test on the latest stable and beta Rust (`scheduled-toolchains`).
+
+  Every job reports through `passed`, the one check a ruleset needs.
 - **`python-ci.yml`:** takes its commands as inputs (`setup`, `test`, `browser-test`), so a repository with its own entry point keeps it. A non-empty `browser-test` adds a job that installs Playwright's Chromium.
 
 ## Developing
