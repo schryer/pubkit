@@ -121,6 +121,11 @@ item that includes the README, so they cannot rot. [checked]
   `README.md` or `LICENSE` also matches any file of that name below, such
   as one in a Python test environment. `cargo package --list` shows
   exactly what ships. [judged]
+- `make publish-check` runs `cargo publish --dry-run --locked` with a
+  target directory of its own (`CARGO_TARGET_DIR=target/publish-check`).
+  If the verify build shares `target/`, its dep-info names the packaged
+  copy's sources. After that, cargo reports the crate up to date however
+  `src/` changes, so tests run a stale binary. [judged]
 - `license` names the licence, and the licence file is in the repository
   and ships in the package. Which licence is the project's choice; the
   standard asks only that it be stated and shipped. [checked: `make
