@@ -116,6 +116,11 @@ item that includes the README, so they cannot rot. [checked]
     `rustdoc-args = ["--generate-link-to-definition"]`.
 
   [judged]
+- The `include` patterns are anchored with `/` (`"/README.md"`,
+  `"/src/**/*.rs"`). Cargo reads them like gitignore patterns, so a bare
+  `README.md` or `LICENSE` also matches any file of that name below, such
+  as one in a Python test environment. `cargo package --list` shows
+  exactly what ships. [judged]
 - `license` names the licence, and the licence file is in the repository
   and ships in the package. Which licence is the project's choice; the
   standard asks only that it be stated and shipped. [checked: `make
