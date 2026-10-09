@@ -2,7 +2,7 @@
   "claims": {
     "identity": {
       "class": "archival",
-      "content": "pubkit 0.3.1 is released as v0.3.1 from commit f70284219791a2302ed012e9c3e4b2c5dfa20488.",
+      "content": "pubkit 0.4.0 is released as v0.4.0 from commit 3dba53f0be11acbfce090277129769fbf903aa56.",
       "data": {
         "columns": [
           {
@@ -27,25 +27,25 @@
         "rows": [
           [
             "pubkit",
-            "0.3.1",
+            "0.4.0",
             "pubkit --version",
-            "pubkit 0.3.1",
-            "v0.3.1",
-            "f70284219791a2302ed012e9c3e4b2c5dfa20488"
+            "pubkit 0.4.0",
+            "v0.4.0",
+            "3dba53f0be11acbfce090277129769fbf903aa56"
           ]
         ]
       },
-      "scope": "the published release v0.3.1 of pubkit",
+      "scope": "the published release v0.4.0 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "f70284219791a2302ed012e9c3e4b2c5dfa20488"
+          "revision": "3dba53f0be11acbfce090277129769fbf903aa56"
         }
       ]
     },
     "release": {
       "class": "archival",
-      "content": "pubkit 0.3.1 was released on 2026-10-08 from commit f70284219791a2302ed012e9c3e4b2c5dfa20488 with these changes.",
+      "content": "pubkit 0.4.0 was released on 2026-10-09 from commit 3dba53f0be11acbfce090277129769fbf903aa56 with these changes.",
       "data": {
         "columns": [
           {
@@ -58,23 +58,39 @@
         "rows": [
           [
             "added",
-            "rust-ci.yml gains optional jobs: `msrv` (the lowest rust-version stated), `fuzz` (longer on a schedule), `cross-targets` (i686, s390x, aarch64 under qemu), and, on scheduled runs, the tests on the latest stable and beta Rust. `passed` reports them all, accepting a job skipped because it was not asked for."
+            "pubkit is a Claude Code plugin marketplace. Its rust-crate-quality plugin carries the Rust crate standard and an agent that audits a crate (library or command-line tool) against it, and writes or fixes the docs. Install it with `/plugin marketplace add schryer/pubkit`."
+          ],
+          [
+            "internal",
+            "CI checks the built wheel carries every template, built from a clean copy of the source."
+          ],
+          [
+            "changed",
+            "pubkit is licensed under Apache-2.0, as publet is, instead of MIT."
+          ],
+          [
+            "changed",
+            "The Rust crate standard asks that Cargo include patterns be anchored with /, since a bare name matches at any depth."
+          ],
+          [
+            "changed",
+            "The Rust crate standard asks that `make publish-check` verify the package in its own target directory: sharing target/ leaves cargo reporting the crate up to date after its source changes."
           ]
         ]
       },
       "depends": [
         "#identity"
       ],
-      "scope": "the published release v0.3.1 of pubkit",
+      "scope": "the published release v0.4.0 of pubkit",
       "sources": [
         {
           "ref": "pubkit",
-          "revision": "f70284219791a2302ed012e9c3e4b2c5dfa20488"
+          "revision": "3dba53f0be11acbfce090277129769fbf903aa56"
         }
       ]
     }
   },
-  "created": "2026-10-08T00:00:00Z",
+  "created": "2026-10-09T00:00:00Z",
   "sections": [
     {
       "heading": "Identity",
