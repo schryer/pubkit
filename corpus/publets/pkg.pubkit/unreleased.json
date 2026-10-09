@@ -1,25 +1,4 @@
 {
-  "changes": [
-    {
-      "category": "added",
-      "change": "pubkit is a Claude Code plugin marketplace. Its rust-crate-quality plugin carries the Rust crate standard and an agent that audits a crate (library or command-line tool) against it, and writes or fixes the docs. Install it with `/plugin marketplace add schryer/pubkit`."
-    },
-    {
-      "category": "internal",
-      "change": "CI checks the built wheel carries every template, built from a clean copy of the source."
-    },
-    {
-      "category": "changed",
-      "change": "pubkit is licensed under Apache-2.0, as publet is, instead of MIT."
-    },
-    {
-      "category": "changed",
-      "change": "The Rust crate standard asks that Cargo include patterns be anchored with /, since a bare name matches at any depth."
-    },
-    {
-      "category": "changed",
-      "change": "The Rust crate standard asks that `make publish-check` verify the package in its own target directory: sharing target/ leaves cargo reporting the crate up to date after its source changes."
-    }
-  ],
+  "changes": [],
   "comment": "Changes not yet released. One row per change: category changed or removed (a published interface changed: major), added (a feature: minor), or fixed or security (patch). `pubrel add` appends one; `pubrel summary` sets the release's summary; `pubrel prepare` moves them into the package publet."
 }
